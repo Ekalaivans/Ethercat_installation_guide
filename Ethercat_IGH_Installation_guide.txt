@@ -1,0 +1,78 @@
+# first thing if we want to install the etehrcat igh we need to verify our linux headers are properly installed, why we need to check means if our linux kernel not mounted means after the installation process when we want to start the ethercat master it will throw the error name ec_master not found
+
+//so first clone the repository with 
+       -> git clone https://gitlab.com/etherlab.org/ethercat.git ethercat-hg
+       -> cd ethercat-hg
+                 git checkout stable-1.5   // in this case if you want to use stable versions just type git fetch all and after git checkout to select your version you want to install 
+                 sudo  ./bootstrap 
+                 cd
+                 sudo mv ethercat-hg /usr/local/src/
+                 cd /usr/local/src/
+                 sudo ln -s /usr/local/src/ethercat-hg ~/ethercat
+    After this process move it to the source directory 
+              cd ~/ethercat
+              sudo ./configure --enable-8139too=no --prefix=/opt/etherlab
+              sudo -s
+              make 
+             make modules 
+             make install 
+             make modules_install   
+-> After succesfull (error free) installation, we'll need to check HWAddr (Hardware Address, also known as the MAC Address) of the NIC we'd like to use (example: eth0) and record it. We'll need to type it in later. You can check your NIC's MAC address by :
+             sudo ifconfig
+-> and now copy MAC address (HWAddr), we will use it in the next step. Note don't copy wirelles adapter's MAC Address, when you type when you type command above there'll be three different sections. Copy the MAC Address of the one starting with letter e, not the wireless adapter that starts with w. Be careful to choose correct one. If you don't copy the correct MAC Address your implementation won't work.
+             sudo mkdir /etc/sysconfig/
+
+             sudo cp /opt/etherlab/etc/sysconfig/ethercat /etc/sysconfig/
+
+             sudo nano /etc/sysconfig/ethercat
+
+-> You need to change the values for MASTER0_DEVICE and DEVICE_MODULES, MASTER0_DEVICE value must be the MAC address of the Ethernet card you've selected, and DEVICE_MODULES value must be the driver you'd like to use for that device, in this case it will be generic.
+
+-> For a development system, "generic" is fine. For better real-time performance, native drivers must be used. However not all NIC drivers are supported by IgH.
+
+-> If you want to use native drivers provided by IgH, check your network card interface driver by ;
+
+             lshw -C network | grep driver
+example :
+                 MASTER0_DEVICE="XX:XX:XX:XX:XX:XX"
+
+                 DEVICE_MODULES="generic"
+After the successfull installation :
+                        cd /opt/etherlab
+-> Copy the initialization script (If this doesn't work, make sure that there isn't a /etc/init.d/ethercat already. If so, remove it), change its ownership properties.
+
+   sudo cp ./etc/init.d/ethercat /etc/init.d/
+
+   sudo chmod a+x /etc/init.d/ethercat
+
+   sudo ln -s /opt/etherlab/bin/ethercat /usr/local/bin/ethercat
+
+   sudo nano /etc/udev/rules.d/99-EtherCAT.rules
+Enter the following contents:
+
+  KERNEL=="EtherCAT[0-9]*", MODE="0664", GROUP="users"
+
+save and exit, then:
+
+ sudo udevadm control --reload 
+ sudo cp /etc/sysconfig/ethercat /etc
+ cd /etc
+ sudo mv ethercat ethercat.conf
+save and exit, then:
+
+ Now we can test our installation
+
+ sudo /etc/init.d/ethercat start
+
+after running this command you must see something like Starting EtherCAT master done.
+
+-> If you want to start ethercat from terminal directly without changing directory you can create symbolic link:
+
+ sudo ln -s /etc/init.d/ethercat /usr/local/bin/ethercatctl
+
+-> And now you can test it.
+
+ sudo ethercatctl start  
+ dmesg
+
+       
